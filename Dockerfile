@@ -1,40 +1,35 @@
-# Use Python 3.10.12 as the base image for building dependencies
-FROM python:3.10.12 AS builder
+# Use Python 3.10 with build tools
+FROM python:3.10.12-bullseye AS builder
 
-# Set environment variables for Python
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_DEFAULT_TIMEOUT=100 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1
 
-# Set the working directory inside the container
 WORKDIR /app
-
-# Create a virtual environment
 RUN python -m venv /app/.venv
 
-# Copy only requirements to leverage Docker cache
-COPY requirements.txt ./
+# Install system dependencies for building
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libgl1 \
+    poppler-utils \
+    tesseract-ocr \
+    tesseract-ocr-eng \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies inside the virtual environment
-RUN /app/.venv/bin/pip install --upgrade pip && \
-    /app/.venv/bin/pip install --retries 5 -r requirements.txt
+COPY requirements.txt .
+RUN /app/.venv/bin/pip install --retries 5 -r requirements.txt
 
-# Use a lightweight Python image for the final stage
+# Final stage
 FROM python:3.10.12-slim
 
-# Set working directory
 WORKDIR /app
-
-# Copy the virtual environment from the builder stage
 COPY --from=builder /app/.venv /app/.venv
-
-# Copy the rest of the application code
+COPY --from=builder /usr/lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu
+COPY --from=builder /usr/bin/tesseract /usr/bin/tesseract
 COPY . .
 
-# Expose the FastAPI port (default is 8000)
 EXPOSE 8000
-
-# Set the command to run FastAPI with Uvicorn
 CMD ["/app/.venv/bin/uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
