@@ -3,7 +3,10 @@ FROM python:3.10.12 AS builder
 
 # Set environment variables for Python
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DEFAULT_TIMEOUT=100 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1
 
 # Set the working directory inside the container
 WORKDIR /app
@@ -15,7 +18,8 @@ RUN python -m venv /app/.venv
 COPY requirements.txt ./
 
 # Install dependencies inside the virtual environment
-RUN /app/.venv/bin/pip install --no-cache-dir -r requirements.txt
+RUN /app/.venv/bin/pip install --upgrade pip && \
+    /app/.venv/bin/pip install --retries 5 -r requirements.txt
 
 # Use a lightweight Python image for the final stage
 FROM python:3.10.12-slim
