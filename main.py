@@ -12,7 +12,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # allow frontend origin
+    allow_origins=["http://localhost:5173","https://genk-smart-file-detector.vercel.app" , "*"],  # allow frontend origin
     allow_credentials=True,
     allow_methods=["*"],  # allow all HTTP methods (POST, GET, etc.)
     allow_headers=["*"],  # allow all headers
