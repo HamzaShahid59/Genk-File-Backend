@@ -4,44 +4,29 @@ from typing import List, Optional
 from pydantic import BaseModel
 import fitz  # remove if you want pure built-in only
 import io
+from fastapi.middleware.cors import CORSMiddleware
 
 from utils import *
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],  # allow frontend origin
+    allow_credentials=True,
+    allow_methods=["*"],  # allow all HTTP methods (POST, GET, etc.)
+    allow_headers=["*"],  # allow all headers
+)
+
 
 @app.post("/validate-documents")
 async def process_form(
-    # permission: bool = Form(...),
-    # businessType: str = Form(...),
-    # newEstablishment: str = Form(...),
-    # eventHall: str = Form(...),
-    # takeaway: str = Form(...),
-    # alcohol: str = Form(...),
-    # loudMusic: str = Form(...),
-    # businessName: str = Form(...),
-    # street: str = Form(...),
-    # houseNumber: str = Form(...),
-    # email: str = Form(...),
+    businessAddress: str = Form(...),
     firstName: str = Form(...),
     lastName: str = Form(...),
-    # streetName: str = Form(...),
-    # houseBusNumber: str = Form(...),
-    # postalCode: str = Form(...),
-    # city: str = Form(...),
-    # phone: str = Form(...),
-    # isOwner: str = Form(...),
-    # ownerName: str = Form(...),
-    # ownerAddress: str = Form(...),
-    # ownerPostalCode: str = Form(...),
-    # ownerCity: str = Form(...),
-    # businessStructure: str = Form(...),
+    ownerName: str = Form(...),
     companyNumber: str = Form(...),
     companyName: str = Form(...),
-    # companyStreet: str = Form(...),
-    # companyHouseNumber: str = Form(...),
-    # companyPostalCode: str = Form(...),
-    # companyCity: str = Form(...),
     IDCardAttachment: UploadFile = File(...),
     KBORegisterExtract: UploadFile = File(...),
     OfficialGazettePublication: UploadFile = File(...),
@@ -72,7 +57,7 @@ async def process_form(
 
     # Step 2: Validate ID card name and expiry
 
-    # id_validation = validate_id_card(files["IDCardAttachment"], firstName,lastName)
+    id_validation = validate_id_card(files["IDCardAttachment"], firstName,lastName)
     
     kbo_register = validate_kbo_register_extract(files["KBORegisterExtract"],
                                                  companyName,companyNumber,
@@ -86,23 +71,23 @@ async def process_form(
     
     commercial_lease = validate_commercial_lease(
                     file_bytes=files["CommercialLeaseAgreement"],
-                    building_owner_name="WS Company BV",
-                    restaurant_address="Grotestraat 3, 3600 Genk"
+                    building_owner_name=ownerName,
+                    restaurant_address=businessAddress
     )
 
     liability_insurance = validate_liability_insurance(
         file_bytes=files["LiabilityInsuranceCopy"],
-        company_name="Analytus ICT Services"
+        company_name=companyName
     )
 
     electric_certificate = validate_electric_certificate(
         file_bytes=files["ElectricCertificate"],
-        expected_address="grotestraat 3 3600 genk"
+        expected_address=businessAddress
     )
 
     return JSONResponse({
         "pdf_checks": file_checks,
-        # "id_card_valid": id_validation,
+        "id_card_valid": id_validation,
         "kbo_register_valid": kbo_register,
         "official_gazette_valid": official_gazette,
         "morality_certificate_valid": morality_certificate,
